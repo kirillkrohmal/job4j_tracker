@@ -1,0 +1,86 @@
+Давайте на примере рассмотрим как создать таблицы и связи.
+
+Допустим у нас есть музыкальные композиции и авторы. Эти таблицы описываются связью mane-to-one. Автор может иметь много записей.
+
+Сначала создадим таблицу автора.
+
+create table author (
+   id serial primary key,
+
+   name varchar(2000)
+
+)
+
+Теперь создадим таблицу композиций.
+
+create table compose (
+
+     id serial primary key,
+
+     name varchar(2000),
+
+     author_id int reference author(id)
+
+)
+
+Строчка  author_id int reference author(id) - создает связь таблица author и compose. В данном случае связь указана many-to-one.
+
+если мы заходим вставить данные в таблицу compose нам нужно сначала взять данные из таблицы author.
+
+reference - указывает на ограничение, что данное поле должно быть в таблице auther.
+
+В этом примере связь реализуется сразу в таблице.
+
+Давайте рассмотрим пример many-to-many.
+
+Допустим у нас появляется таблица меломанов.
+
+create table music_lover (
+
+    id serial primary key,
+
+    name varchar(2000)
+
+);
+
+Тебе нам надо добавить ограничения - связать таблицы music_lover и compose.
+
+Для этого нам нужно добавить вспомогательную таблицу. music_lovel_compose
+
+create music_lovel_compose (
+
+    id serial primary key,
+
+    music_lovel_id int reference music_lovel(id),
+
+    compose_id int refenrece compose(id)
+
+);
+
+Задание.
+
+ Создать UML диаграмму классов системы заявок. В системе должны существовать: Пользователи. Роли. Права ролей. Заявки. Комментарии Заявок. Приложенные Файлы. Состояние заявки. Категории заявки.
+
+Это минимум 8 основных таблиц и добавочные.
+Указать типы взаимосвязей one-to-one, one-to-many, many-to-one.
+
+user - role = many-to-one
+role - rules = many-to-many
+item - user = one-to-one
+item - comments = one-to-many
+item - attachs = one-to-many
+item - category = many-to-one
+item - state = many-to-one
+Создать SQL скрипт инициализирующий создание новой базы данных.
+
+Создать SQL скрипт создающий таблицы для хранения структуры системы заявок.
+
+Создать SQL скрипт заполняющий начальные данные для системы заявок.
+
+Скрипты должны выполняться последовательно.
+
+Скрипт залейте в файл create.sql и залей его в репозиторий.
+
+Ссылку на коммит оставьте в задаче.
+
+Тоже самое сделай с картинками описывающими UML.

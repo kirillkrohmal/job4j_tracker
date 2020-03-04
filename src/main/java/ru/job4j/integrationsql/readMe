@@ -1,0 +1,278 @@
+Общие сведения.
+
+Все проекты используют базу данных в качестве хранилище данных. Процесс разработки касается не только кода, но и схемы баз данных.
+
+Поддерживать обновления схем баз данных в ручную сложно. Поэтому в ручную это не делают, а используют библиотеку Liquibase.
+
+https://www.liquibase.org/
+
+Библиотека позволяет автоматически поддерживать схему базы данных.
+
+В данном примере мы будем создавать схему данных для наших тестов в приложении Трекер.
+
+Конфигурирование Maven.
+
+В корневом pom.xml нужно прописать настройки для подключения к тестовой базе.
+
+Для этого в maven используется понятие profile - профили.
+
+<project>
+....
+<profiles>
+    <profile>
+        <id>test</id>
+        <properties>
+            <db.url>jdbc:postgresql://127.0.0.1:5432/tracker</db.url>
+            <db.username>postgres</db.username>
+            <db.password>password</db.password>
+            <db.driver>org.postgresql.Driver</db.driver>
+        </properties>
+    </profile>
+    <profile>
+        <id>production</id>
+        <properties>
+            <db.url>jdbc:postgresql://127.0.0.1:5432/tracker</db.url>
+            <db.username>postgres</db.username>
+            <db.password>password</db.password>
+            <db.driver>org.postgresql.Driver</db.driver>
+        </properties>
+    </profile>
+</profiles>
+
+....
+</project>
+
+
+
+Далее все настройки производим с конфигурационным файлом модуля chapter_008/pom.xml
+
+chapter_008 - номер модуля может отличаться в вашем проекте.
+
+Добавляем раздел build в конец файла chapter_008/db/scripts/pom.xml
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-maven-plugin</artifactId>
+            <version>3.6.2</version>
+            <configuration>
+                <changeLogFile>${basedir}/db/master.xml</changeLogFile>
+                <url>${db.url}</url>
+                <driver>${db.driver}</driver>
+                <username>${db.username}</username>
+                <password>${db.password}</password>
+            </configuration>
+            <executions>
+                <execution>
+                    <phase>process-resources</phase>
+                    <goals>
+                        <goal>update</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+
+Здесь стоит уточнить. что maven начинает запускать обновление схемы в фазе подготовки ресурсов.
+
+<phase>process-resources</phase>
+
+То есть до компиляции и тестов.
+
+Теперь нужно добавить файл chapter_008/db/master.xml
+
+Это файл описывает настройки liquibase.
+
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <include file="scripts/update_001.sql" relativeToChangelogFile="true"/>
+</databaseChangeLog>
+
+Теперь нужно создать скрипты, которые будет запускать liquibase.
+
+Скрипты нужно создать в папке chapter_008/update_001.sql
+create table items (
+   id serial primary key not null,
+   name varchar(2000)
+);
+
+
+Когда нам нужно изменить схему, мы добавляем новый файл update_00x.sql и прописываем его в master.xml по аналогии с update_001.xml
+
+Теперь можно запустить maven и проверить, что liquibase работает правильно.
+
+mvn install -Ptest
+
+В логе будет следующие строчки.
+
+
+
+И дальше вы можете проверить, что в базе tracker создалась схема item.
+
+Важно, базу liquibase создать сам не может. Вы должны это сделать самостоятельно.
+
+-Ptest - указывает на профиль. В следующем задании, мы подключим в Travis CI базу данных и для этого нужно использовать разные профили.
+
+
+
+Интеграционные тесты.
+
+В курсе до этого мы использовали модульные тесты. Основное отличие модульных тестов в том, что они не зависимы от ресурсов.
+
+Интеграционные тесты наоборот - это тесты, которые используют внешние ресурсы.
+
+При любом тестировании нужно использовать принцип FIRST
+
+F - fast - быстро
+
+I - isolated - изолировано.
+
+R - repeatable - воспроизводимо.
+
+S - self-validate - проверяет себя сам.
+
+T - thorough - проверяют все возможные случае.
+
+Когда мы используем интеграционные тесты, мы сталкиваем с проблемой скорости и повторяемости.
+
+Давайте посмотрим на пример теста.
+
+@Test
+public void createItem() {
+    TrackerSQL tracker = new TrackerSQL();
+    tracker.add(new Item("name", "desc"));
+    assertThat(tracker.findByName("name").length, is(1));
+}
+
+Если мы запустим этот тест два раза он у нас упадет. Потому, что в базе будет созданы две записи.
+
+Чтобы избежать такой ситуации в JDBC можно использовать метод откатывания изменения - rollback.
+
+Этот метод, может работать только с режиме autocommit = false. То есть все изменения сначала содержаться в памяти до момента, когда мы не выполним commit();
+
+Так же autocommit = false - позволяет увеличить скорость работы тестов, так как мы не сохраняем данные на диске, а только делаем изменения в памяти.
+
+Давайте посмотрим на основной код программы.
+
+@Override
+public Item add(Item item) {
+    try (final PreparedStatement statement = this.connection
+            .prepareStatement("insert into items (name, desc) values (?)", Statement.RETURN_GENERATED_KEYS)) {
+        statement.setString(1, item.getName());
+        statement.setString(2, item.getDesc());
+        statement.executeUpdate();
+        try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+            if (generatedKeys.next()) {
+                item.setId(generatedKeys.getString(1));
+                return item;
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    throw new IllegalStateException("Could not create new user");
+}
+
+Мы не может изменять данных код, потому что он будет работать не верно. если мы добавим rollback.
+
+Поведение autocommit и rollback можно заложить в объекте connection.
+
+Давайте это сделаем.
+
+1. Вынесем коннект в конструктор. Это позволит нам создать его вне класса TrackerSQL.
+
+public class TrackerSQL implements ITracker, AutoCloseable {
+
+    private final Connection connection;
+
+    public TrackerSQL(Connection connection) {
+        this.connection = connection;
+    }
+
+2. Теперь нам нужно решить проблему управления методами Connection.close()
+Мы можем пойти двумя пусти использовать шаблон декоратор или использовать шаблон Proxy.
+
+Если мы используем шаблон декоратор. то нам нужно будет переопределить более 30 методов. Это очень избыточно.
+Поэтому мы будет использовать проксирование.
+
+Проксирование - по сути это фильтр между нашими методами. С помощью прокси мы можем добавлять, создавать, изменять поведение.
+
+В JDK 1.8 ввели новый класс Proxy. Он позволяет создаеть объект на основании интерфейса.
+
+Давайте сделаем фабричный метод, который создает Connection, в котором метод close работает с вызовом rollback.
+
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+/**
+ * Connection, which rollback all commits.
+ * It is used for integration test.
+ */
+public class ConnectionRollback {
+
+    /**
+     * Create connection with autocommit=false mode and rollback call, when conneciton is closed.
+     * @param connection connection.
+     * @return Connection object.
+     * @throws SQLException possible exception.
+     */
+    public static Connection create(Connection connection) throws SQLException {
+        connection.setAutoCommit(false);
+        return (Connection) Proxy.newProxyInstance(
+                ConnectionRollback.class.getClassLoader(),
+                new Class[] { Connection.class },
+                (proxy, method, args) -> {
+                    Object rsl = null;
+                    if ("close".equals(method.getName())) {
+                        connection.rollback();
+                        connection.close();
+                    } else {
+                        rsl = method.invoke(connection, args);
+                    }
+                    return rsl;
+                }
+        );
+    }
+}
+
+Теперь можно поправить интеграционный тест, который будет удовлетворять принципу FIRST.
+
+public class TrackerSQLTest {
+
+    public Connection init() {
+        try (InputStream in = TrackerSQL.class.getClassLoader().getResourceAsStream("app.properties")) {
+            Properties config = new Properties();
+            config.load(in);
+            Class.forName(config.getProperty("driver-class-name"));
+            return DriverManager.getConnection(
+                    config.getProperty("url"),
+                    config.getProperty("username"),
+                    config.getProperty("password")
+
+ );
+ } catch (Exception e) {
+ throw new IllegalStateException(e);
+ }
+ }
+
+ @Test
+ public void createItem() throws SQLException {
+ try (TrackerSQL tracker = new TrackerSQL(ConnectionRollback.create(this.init()))) {
+ tracker.add(new Item("name", "desc"));
+ assertThat(tracker.findByName("name").length, is(1));
+ }
+ }
+
+Задание.
+
+1. Доработать схему scripts/update_001.xml до полной схему класса Item.
+2. Подключить к проекту liquibase.
+3. Написать интеграционные тесты со схемой ConnectionRollback.
