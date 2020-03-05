@@ -1,13 +1,15 @@
 package ru.job4j.filtersql;
 
 
+import org.apache.log4j.Logger;
+
 import java.sql.*;
 
 /**
  * Created by Comp on 31.10.2017.
  */
 public class FilterSql {
-    //private static final Logger log = LoggerFactory.getLogger(FilterSql.class);
+    private static final Logger log = Logger.getLogger(FilterSql.class);
 
     public static void main(String[] args) throws SQLException,
             ClassNotFoundException {
@@ -27,8 +29,10 @@ public class FilterSql {
             }
             rs.close();
             ps.close();
+            log.info("Done!");
         } catch (SQLException e) {
             e.getMessage();
+            log.error("Error");
         } finally {
             if (c != null) {
                 try {
