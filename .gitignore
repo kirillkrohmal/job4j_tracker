@@ -2,5 +2,4 @@
 'job4j_tracker.iml' 
 '*.iml' 
 'out' 
-'target' 
-'.idea' 
+target/
