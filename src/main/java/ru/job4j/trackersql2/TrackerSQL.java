@@ -100,7 +100,13 @@ public class TrackerSQL implements ITracker, AutoCloseable {
 
         try (PreparedStatement statement = connection.prepareStatement(s)) {
 
+            Item item = new Item();
+
             statement.setString(1, id);
+            statement.setString(2, item.getKey());
+            statement.setString(3, item.getName());
+            statement.setLong(4, item.getCreat());
+            statement.setString(5, item.getDescription());
             statement.executeUpdate();
 
         } catch (SQLException e) {
