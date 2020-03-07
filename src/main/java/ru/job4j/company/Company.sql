@@ -174,17 +174,9 @@ FROM person p left join company c on p.company_id = c.id WHERE p.company_id not 
 SELECT p.name as Сотрудник, c.name as Компания
 FROM person p left join company c on p.company_id = c.id;
 
-SELECT c.name as Компания, count(p.name) as Сотрудник
-FROM company c left join person p on p.company_id = c.id
-where exists (select max(p.name) from person p) group by c.name, p.name;
-
-
-SELECT c.name, COUNT(*) AS Сотрудник
-FROM company c left join person p on p.company_id = c.id GROUP BY c.name ORDER BY Сотрудник DESC;
-
 SELECT c.name as Компания, count(*) as Сотрудник
 FROM company c left join person p on p.company_id = c.id
-group by c.name ORDER BY Сотрудник DESC;
+group by c.name ORDER BY Сотрудник DESC limit 1;
 
 
 
