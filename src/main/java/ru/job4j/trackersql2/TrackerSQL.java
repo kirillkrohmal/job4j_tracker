@@ -177,7 +177,7 @@ public class TrackerSQL implements ITracker, AutoCloseable {
         trackerSQL.init();
         String name = "test1";
 
-        //trackerSQL.add(item1);
+        trackerSQL.add(item1);
         //trackerSQL.update(item2);
         //trackerSQL.replace(item1.getId(), item3);
         //trackerSQL.delete(item1.getId());
