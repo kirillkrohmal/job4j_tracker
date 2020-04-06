@@ -70,7 +70,7 @@ public class TrackerSQL implements ITracker, AutoCloseable {
 
 
         try (Connection connection = init()) {
-            String s = "SELECT id=?, key=?, name=?, creat=?, description=? FROM trackersql WHERE name = ?";
+            String s = "SELECT id=:id, key=:key, name=:name, creat=?, description=? FROM trackersql WHERE name = :name";
             PreparedStatement statement = connection.prepareStatement(s);
 
             ResultSet resultSet = statement.executeQuery();
